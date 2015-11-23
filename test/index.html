@@ -134,6 +134,15 @@
                 }
             }
 
+            function isRetina(){
+                if (window.devicePixelRatio > 1){
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+
             function init() {
 
                 container = document.getElementById("container");
@@ -149,7 +158,15 @@
 
                 // camera
                 camera = new THREE.Camera();
-                camera.position.set(0.5,-0.5,0);
+
+                if (isRetina()){
+                    camera.position.set(0.5,0.5,0);
+                }
+                else {
+                    console.log("not retina");
+                    camera.position.set(0.5,-0.5,0);
+                }
+
                 scene.add(camera);
 
                 // lights
@@ -285,6 +302,9 @@
             function setRenderValues(){
                 renderer = new THREE.WebGLRenderer( {alpha:true} );
                 renderer.setSize((WEBCAP.width*2)/window.devicePixelRatio, (WEBCAP.height*2)/window.devicePixelRatio);
+                if (isRetina()){
+                    renderer.setViewport( 2,0, WEBCAP.width*window.devicePixelRatio, WEBCAP.height*window.devicePixelRatio);
+                }
                 renderer.setClearColor( 0x000000, 0 ); // the default
                 container.appendChild( renderer.domElement );
                 renderer.gammaInput = true;
