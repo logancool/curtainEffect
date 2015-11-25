@@ -46,9 +46,9 @@
 
     //lcool defined
 
-    var WEBCAP_URL = 'WC_1.png';
+    var WEBCAP_URL = 'WC_3.png';
     var AD_IMG_URL = "adImage.jpg";
-    var VELOCITY = 0.1;
+    var VELOCITY = 0.5;
     var DURATION = 2; // curtain opening in seconds
     var DELAY = 1.5; // time before curtains open upon loading
     var openPad = 0.02; //how much padding beside each ad
@@ -58,7 +58,7 @@
 
 
     var adContainer = document.getElementById("adSpace");
-    adContainer.style.backgroundImage = "url(\'" + AD_IMG_URL + "\')";
+    //adContainer.style.backgroundImage = "url(\'" + AD_IMG_URL + "\')";
 
     var WEBCAP = document.getElementById("bg_img");
     WEBCAP.src = WEBCAP_URL;
@@ -66,7 +66,7 @@
 
     var AD_IMG = document.getElementById("ad_img");
     AD_IMG.src = AD_IMG_URL;
-    AD_IMG.style.display = "none";
+    //AD_IMG.style.display = "none";
 
     $(document).ready(function() {
 
@@ -164,7 +164,10 @@
             camera.position.set(0.5,0.5,0);
             if (WEBCAP.width > window.screen.availWidth){
                 WEBCAP.width = window.screen.availWidth;
+                container.style.width = WEBCAP.width;
             }
+
+
         }
         else {
             console.log("not retina");
@@ -229,7 +232,14 @@
         scene.add(leftCurtain);
         scene.add(rightCurtain);
 
-        console.log(window.devicePixelRatio);
+        container.style.width = WEBCAP.width;
+
+        //if the ad is too big. reduce it by 50 percent
+        while(AD_IMG.width/WEBCAP.width > 0.9){
+            AD_IMG.width = AD_IMG.width/1.5;
+            console.log("adimg adjusted: " + AD_IMG.width);
+        }
+
         //fade out the background
         fade(WEBCAP, 1,0);
 
