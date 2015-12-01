@@ -46,7 +46,7 @@
 
     //lcool defined
 
-    var WEBCAP_URL = 'WC_3.png';
+    var WEBCAP_URL = 'WC_1.png';
     var AD_IMG_URL = "adImage.jpg";
     var VELOCITY = 0.5;
     var DURATION = 2; // curtain opening in seconds
@@ -74,7 +74,7 @@
         $("#bg_img, #ad_img").load(function() {
 
             if (loadedOne){
-                openWidth = AD_IMG.width / WEBCAP.width + openPad;
+                //openWidth = (AD_IMG.width / WEBCAP.width) + openPad;
                 //console.log("AD: " + AD_IMG.width + "WC: " + WEBCAP.width);
                 //console.log("OPENING: " + openWidth);
                 initCannon();
@@ -243,6 +243,7 @@
         //fade out the background
         fade(WEBCAP, 1,0);
 
+        openWidth = (AD_IMG.width / WEBCAP.width) + openPad;
         animateCurtain(leftCurtain, 1, 1-openWidth);
         animateCurtain(rightCurtain, 1, 1-openWidth);
 
@@ -302,6 +303,10 @@
 
     function animateCurtain(curtain, from, to) {
         adContainer.style.display = "block";
+        adContainer.style.position = "absolute";
+        adContainer.style.top = 0;
+        adContainer.style.width = WEBCAP.width + "px";
+        adContainer.style.height = WEBCAP.height + "px";
         setTimeout(function (){
             TweenLite.fromTo(curtain.scale, DURATION, {x: from}, {x: to, ease: Sine.easeOut});
         }, DELAY*1000);
