@@ -16,7 +16,7 @@
 </head>
 
 <body>
-
+<script src="http://cdn.flashtalking.com/frameworks/js/api/2/9/html5API.js"></script>
 <div id="container">
     <div id="close_btn"></div>
     <div id="adSpace">
@@ -43,13 +43,14 @@
     var particles = [];
     var world;
     var openWidth; // how much screen do you want to show the ad
+    var TILTX = 0;
 
     //lcool defined
 
-    var WEBCAP_URL = 'WC_1.png';
+    var WEBCAP_URL = 'WC_3.png';
     var AD_IMG_URL = "adImage.jpg";
-    var VELOCITY = 0.5;
-    var DURATION = 2; // curtain opening in seconds
+    var VELOCITY = 0.3;
+    var DURATION = 2.2; // curtain opening in seconds
     var DELAY = 1.5; // time before curtains open upon loading
     var openPad = 0.02; //how much padding beside each ad
     var loadedOne = false;
@@ -77,6 +78,10 @@
                 //openWidth = (AD_IMG.width / WEBCAP.width) + openPad;
                 //console.log("AD: " + AD_IMG.width + "WC: " + WEBCAP.width);
                 //console.log("OPENING: " + openWidth);
+
+                WEBCAP.style.display = "block";
+                AD_IMG.style.display = "block";
+
                 initCannon();
                 init();
                 animate();
@@ -90,9 +95,29 @@
     function initCannon(){
         world = new CANNON.World();
         world.broadphase = new CANNON.NaiveBroadphase();
-        world.gravity.set(0,-3,0);
+        world.gravity.set(TILTX, -2,0);
         //amount of resistant effects
         world.solver.iterations = 30;
+
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener("deviceorientation", function () {
+                tilt([event.alpha, event.beta, event.gamma]);
+            }, true);
+        } else if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', function () {
+                tilt([event.acceleration.x * 2, event.acceleration.y * 2]);
+            }, true);
+        } else {
+            window.addEventListener("MozOrientation", function () {
+                tilt([orientation.x * 50, orientation.y * 50]);
+            }, true);
+        }
+
+        function tilt(x, y, z){
+            TILTX = x;
+            console.log("GRAVITY: " + world.gravity.toString());
+            animate();
+        }
 
         // Create cannon particles
         for ( var i = 0, il = Nx+1; i !== il; i++ ) {
@@ -170,7 +195,7 @@
 
         }
         else {
-            console.log("not retina");
+           // console.log("not retina");
             camera.position.set(0.5,-0.5,0);
         }
 
@@ -296,7 +321,7 @@
     function onWindowResize() {
         if(renderer.domElement.width != window.innerWidth){
             camera.aspect = window.innerWidth / renderer.domElement.height;
-            camera.updateProjectionMatrix();
+            //camera.updateProjectionMatrix();
             renderer.setSize( window.innerWidth, renderer.domElement.height );
         }
     }
@@ -335,7 +360,6 @@
     }
 
     function render() {
-
 
         //for particles going down
         for (var i = 0, il = Nx + 1; i !== il; i++) {
