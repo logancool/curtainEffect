@@ -17,7 +17,7 @@
 
 <body>
 <script src="http://cdn.flashtalking.com/frameworks/js/api/2/9/html5API.js"></script>
-<div id="container">
+<div id="wc_cont">
     <div id="close_btn"></div>
     <div id="adSpace">
         <img id="ad_img"/>
@@ -27,7 +27,7 @@
 
 <script>
 
-    //three defined
+    //THREE defined
     var dt = 1/60, R = 0.2;
     var clothMass = 1;  // 1 kg in total
     var clothSize = 1; // 1 meter
@@ -36,88 +36,75 @@
     var mass = clothMass / Nx*Ny;
     var restDistance = clothSize/Nx;
     var renderer;
-    var container, stats, bgImg;
+    var wc_cont, stats, bgImg;
     var camera, scene;
     var clothGeometry;
     var object;
     var particles = [];
     var world;
     var openWidth; // how much screen do you want to show the ad
-    var TILTX = 0;
+
 
     //lcool defined
-
     var WEBCAP_URL = 'WC_3.png';
     var AD_IMG_URL = "adImage.jpg";
-    var VELOCITY = 0.3;
+    
+    var VELOCITY = 0.3; // y-axis force being pushed on the curtain
+    var GRAVITY = -7.82; // gravity set in the y axis
     var DURATION = 2.2; // curtain opening in seconds
     var DELAY = 1.5; // time before curtains open upon loading
-    var openPad = 0.02; //how much padding beside each ad
-    var loadedOne = false;
-    var closeBtn, closingSequence, animFrame;
+    var OPEN_PAD = 0.02; //how much padding beside each ad
+    
+    var animFrame;
+    var ready = false;
 
-
-
-    var adContainer = document.getElementById("adSpace");
-    //adContainer.style.backgroundImage = "url(\'" + AD_IMG_URL + "\')";
-
-    var WEBCAP = document.getElementById("bg_img");
-    WEBCAP.src = WEBCAP_URL;
-
-
-    var AD_IMG = document.getElementById("ad_img");
-    AD_IMG.src = AD_IMG_URL;
-    //AD_IMG.style.display = "none";
+    /**
+     * Loads the webcapture image and ad image and calls the animate() function to begin the
+     * curtain effect
+     */
 
     $(document).ready(function() {
 
+        // Web capture background image set
+        var WC = document.getElementById("bg_img");
+        WC.src = WEBCAP_URL;
+
+        // Wrapper for the ad unit
+        var AU = document.getElementById("adSpace");
+
+        // Wrapper for the AU image used in the effect
+        var AD_IMG = document.getElementById("ad_img");
+        AD_IMG.src = AD_IMG_URL;
+
         //make sure both the bg_img and ad_img have loaded before checking width and height
+        //console.log("1");
+
         $("#bg_img, #ad_img").load(function() {
-
-            if (loadedOne){
-                //openWidth = (AD_IMG.width / WEBCAP.width) + openPad;
-                //console.log("AD: " + AD_IMG.width + "WC: " + WEBCAP.width);
-                //console.log("OPENING: " + openWidth);
-
-                WEBCAP.style.display = "block";
-                AD_IMG.style.display = "block";
-
+            //console.log("2");
+            if (ready){
+               // console.log("3");
                 initCannon();
-                init();
+
+                init(WC, AU, AD_IMG);
+
                 animate();
             }
             else {
-                loadedOne = true;
+                ready = true; //after the first img has loaded .load will be called again.
             }
         });
     });
 
+    /*
+    * Initializes the particles for the webGL render
+    * */
     function initCannon(){
+
         world = new CANNON.World();
         world.broadphase = new CANNON.NaiveBroadphase();
-        world.gravity.set(TILTX, -2,0);
         //amount of resistant effects
+        world.gravity.set(0,GRAVITY,0);
         world.solver.iterations = 30;
-
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener("deviceorientation", function () {
-                tilt([event.alpha, event.beta, event.gamma]);
-            }, true);
-        } else if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', function () {
-                tilt([event.acceleration.x * 2, event.acceleration.y * 2]);
-            }, true);
-        } else {
-            window.addEventListener("MozOrientation", function () {
-                tilt([orientation.x * 50, orientation.y * 50]);
-            }, true);
-        }
-
-        function tilt(x, y, z){
-            TILTX = x;
-            console.log("GRAVITY: " + world.gravity.toString());
-            animate();
-        }
 
         // Create cannon particles
         for ( var i = 0, il = Nx+1; i !== il; i++ ) {
@@ -126,6 +113,7 @@
                 var idx = j*(Nx+1) + i;
                 //var p = clothFunction(i/(Nx+1), j/(Ny+1));
                 //remove corners of curtain
+                var clothFunction = plane(restDistance * Nx, restDistance * Ny);
                 var p = clothFunction(i/(Nx), j/(Ny+1));
                 var particle = new CANNON.Body({
                     mass: j==Ny ? 0 : mass
@@ -157,6 +145,10 @@
         }
     }
 
+    /**
+     * Checks users screen has a pixel ratio of >1 (retina)
+     * @returns true if it is, false otherwise
+     */
     function isRetina(){
         if (window.devicePixelRatio > 1){
             return true;
@@ -166,33 +158,35 @@
         }
     }
 
-    function init() {
+    /**
+     * Sets up the DOM with containers and close,
+     * splits the webcaptures image,
+     * creates the curtain, splits it, and calls the initial
+     * render animation to open it.
+     */
+    function init(WC, AU, AD_IMG) {
 
-        container = document.getElementById("container");
-        closeBtn = document.getElementById("close_btn");
+        WC.style.display = "block";
+        AD_IMG.style.display = "block";
+
+        wc_cont = document.getElementById("wc_cont");
         bgImg = document.getElementById("bg_img");
 
-        document.body.appendChild( container );
-        document.body.appendChild( adContainer);
+        document.body.appendChild( wc_cont );
+        document.body.appendChild( AU);
 
         // scene
-
         scene = new THREE.Scene();
 
         // camera
         camera = new THREE.Camera();
 
         if (isRetina()){
-            var squished = (WEBCAP.width - AD_IMG.width)/(2*WEBCAP.width);
-            openWidth = 1 - squished;
-
             camera.position.set(0.5,0.5,0);
-            if (WEBCAP.width > window.screen.availWidth){
-                WEBCAP.width = window.screen.availWidth;
-                container.style.width = WEBCAP.width;
+            if (WC.width > window.screen.availWidth){
+                WC.width = window.screen.availWidth;
+                wc_cont.style.width = WC.width;
             }
-
-
         }
         else {
            // console.log("not retina");
@@ -202,7 +196,7 @@
         scene.add(camera);
 
         // lights
-        var light, materials;
+        var light;
         scene.add( new THREE.AmbientLight( 0x666666 ) );
         light = new THREE.DirectionalLight( 0xffffff, 1.25 );
         var d = 5;
@@ -220,13 +214,14 @@
         light.shadowDarkness = 0.5;
         scene.add( light );
 
+        var clothFunction = plane(restDistance * Nx, restDistance * Ny);
 
         // cloth geometry
         clothGeometry = new THREE.ParametricGeometry( clothFunction, Nx, Ny, true );
         clothGeometry.dynamic = true;
         clothGeometry.computeFaceNormals();
 
-        // lcool added
+        // offset each render
         function splitCurtain(off) {
             var curtain = THREE.ImageUtils.loadTexture(WEBCAP_URL); // left half of the display
             curtain.wrapS = curtain.wrapT = THREE.RepeatWrapping;
@@ -257,31 +252,31 @@
         scene.add(leftCurtain);
         scene.add(rightCurtain);
 
-        container.style.width = WEBCAP.width;
+        //match up the WC container width
+        wc_cont.style.width = WC.width;
 
         //if the ad is too big. reduce it by 50 percent
-        while(AD_IMG.width/WEBCAP.width > 0.9){
+        while(AD_IMG.width/WC.width > 0.9){
             AD_IMG.width = AD_IMG.width/1.5;
-            console.log("adimg adjusted: " + AD_IMG.width);
+            //console.log("adimg adjusted: " + AD_IMG.width);
         }
 
-        //fade out the background
-        fade(WEBCAP, 1,0);
+        function addCloseBtn(){
+            var closeBtn = document.getElementById("close_btn");
+            closeBtn.addEventListener("click", function() {  closeCurtain(closeBtn, AD_IMG, WC, leftCurtain, rightCurtain)} );
+            closeBtn.style.display = "block";
+            document.body.appendChild( closeBtn );
+        }
 
-        openWidth = (AD_IMG.width / WEBCAP.width) + openPad;
-        animateCurtain(leftCurtain, 1, 1-openWidth);
-        animateCurtain(rightCurtain, 1, 1-openWidth);
-
-        closeBtn.addEventListener("click", function() {  closeClicked(leftCurtain, rightCurtain)} );
-        closeBtn.style.display = "block";
-        document.body.appendChild( closeBtn );
+        addCloseBtn();
 
         //prepare scene for rendering
-        setRenderValues();
+        setRenderValues(WC);
+
+        //START ANIMATION
+        openCurtain(AU,AD_IMG, WC, leftCurtain, rightCurtain);
 
     }
-
-    var clothFunction = plane(restDistance * Nx, restDistance * Ny);
 
     function plane(width, height) {
         return function(u, v) {
@@ -291,32 +286,51 @@
             return new THREE.Vector3(x, y, z);
         };
     }
+    function placeAd(AU,WC) {
+        AU.style.display = "block";
+        AU.style.position = "absolute";
+        AU.style.top = 0;
+        AU.style.width = WC.width + "px";
+        AU.style.height = WC.height + "px";
+    }
 
+    function openCurtain(AU,AD_IMG, WC, leftCurtain, rightCurtain) {
+        placeAd(AU,WC);
 
-    //debugging
-    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+        //fade out the background
+        fade(WC, 1,0);
 
-
-    function closeClicked(leftCurtain, rightCurtain){
+        openWidth = (AD_IMG.width / WC.width) + OPEN_PAD;
+        animateCurtain(leftCurtain, 1, 1-openWidth);
+        animateCurtain(rightCurtain, 1, 1-openWidth);
+    }
+    function closeCurtain(closeBtn,AD_IMG, WC, leftCurtain, rightCurtain){
 
         animateCurtain(leftCurtain, 1-openWidth,1);
         animateCurtain(rightCurtain, 1-openWidth,1);
 
         closeBtn.style.display = "none";
         //fade the curtains out
+
         setTimeout(function (){
-            WEBCAP.style.display = "block";
-            adContainer.style.display = "none";
-            fade(WEBCAP, 0,1);
+            WC.style.display = "block";
+            AD_IMG.style.display = "none";
+            fade(WC, 0,1);
             cancelAnimationFrame( animFrame );
         }, (DURATION + DELAY)*1000);
 
         // turn off
         // wait one second and the call myFT.contract() here...
     }
+    function animateCurtain(curtain, from, to) {
 
+        setTimeout(function (){
+            TweenLite.fromTo(curtain.scale, DURATION, {x: from}, {x: to, ease: Sine.easeOut});
+        }, DELAY*1000);
+    }
+    
 
-    //
+    ////RENDERING
 
     function onWindowResize() {
         if(renderer.domElement.width != window.innerWidth){
@@ -326,32 +340,21 @@
         }
     }
 
-    function animateCurtain(curtain, from, to) {
-        adContainer.style.display = "block";
-        adContainer.style.position = "absolute";
-        adContainer.style.top = 0;
-        adContainer.style.width = WEBCAP.width + "px";
-        adContainer.style.height = WEBCAP.height + "px";
-        setTimeout(function (){
-            TweenLite.fromTo(curtain.scale, DURATION, {x: from}, {x: to, ease: Sine.easeOut});
-        }, DELAY*1000);
-    }
-
     function animate() {
         world.step(dt);
         animFrame = requestAnimationFrame(animate);
         render();
     }
 
-    function setRenderValues(){
+    function setRenderValues(WC){
         renderer = new THREE.WebGLRenderer( {alpha:true} );
-        renderer.setSize(WEBCAP.width*2, WEBCAP.height*2);
+        renderer.setSize(WC.width*2, WC.height*2);
         if (isRetina()){
-            renderer.setSize((WEBCAP.width*2)/window.devicePixelRatio, (WEBCAP.height*2)/window.devicePixelRatio);
-            renderer.setViewport( 2,0, WEBCAP.width*window.devicePixelRatio, WEBCAP.height*window.devicePixelRatio);
+            renderer.setSize((WC.width*2)/window.devicePixelRatio, (WC.height*2)/window.devicePixelRatio);
+            renderer.setViewport( 2,0, WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
         }
         renderer.setClearColor( 0x000000, 0 ); // the default
-        container.appendChild( renderer.domElement );
+        wc_cont.appendChild( renderer.domElement );
         renderer.gammaInput = true;
         renderer.gammaOutput = true;
         renderer.physicallyBasedShading = true;
@@ -388,7 +391,7 @@
 
 
     ////////////////////////////
-    // begin Flashtalking API
+    //  Flashtalking API
     var expndedOnce = false;
     var unexpanded = myFT.$("#unexpanded");
     var adspace = myFT.$("#adspace");
@@ -415,6 +418,39 @@
     myFT.applyButton(unexpanded, expand);
     myFT.applyClickTag(adspace);
 
+    //debugging
+    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+    //// ---- UNUSED ----- ////
+
+    /*
+     Implements gravity to the curtain for mobile devices with accelerometers. When the
+     tilts the device the curtain should remain facing directly perpendicular to they ground
+     */
+
+    function addTilt(){
+        var TILTX = 0;
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener("deviceorientation", function () {
+                tilt([event.alpha, event.beta, event.gamma]);
+            }, true);
+        } else if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', function () {
+                tilt([event.acceleration.x * 2, event.acceleration.y * 2]);
+            }, true);
+        } else {
+            window.addEventListener("MozOrientation", function () {
+                tilt([orientation.x * 50, orientation.y * 50]);
+            }, true);
+        }
+
+        function tilt(x, y, z){
+            TILTX = x;
+            console.log("GRAVITY: " + world.gravity.toString());
+            animate();
+        }
+
+    }
 
 </script>
 </body>
