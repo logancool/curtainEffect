@@ -120,7 +120,7 @@
                 });
                 particle.addShape(new CANNON.Particle());
                 //particle.linearDamping = 0.2;
-                particle.linearDamping = 0.5;
+                particle.linearDamping = 0.2;
                 particle.position.set(
                         p.x,
                         p.y-Ny * 0.92 * restDistance, //this is what makes it go down
@@ -134,6 +134,7 @@
                 particle.velocity.set(VELOCITY,0,0);
             }
         }
+
         function connect(i1,j1,i2,j2){
             world.addConstraint( new CANNON.DistanceConstraint(particles[i1][j1],particles[i2][j2],restDistance) );
         }
@@ -273,6 +274,9 @@
         //prepare scene for rendering
         setRenderValues(WC);
 
+        //Add tilt listener
+        addTilt();
+
         //START ANIMATION
         openCurtain(AU,AD_IMG, WC, leftCurtain, rightCurtain);
 
@@ -332,13 +336,13 @@
 
     ////RENDERING
 
-    function onWindowResize() {
-        if(renderer.domElement.width != window.innerWidth){
-            camera.aspect = window.innerWidth / renderer.domElement.height;
+    //function onWindowResize() {
+       // if(renderer.domElement.width != window.innerWidth){
+           // camera.aspect = window.innerWidth / renderer.domElement.height;
             //camera.updateProjectionMatrix();
-            renderer.setSize( window.innerWidth, renderer.domElement.height );
-        }
-    }
+          //  renderer.setSize( window.innerWidth, renderer.domElement.height );
+       // }
+   // }
 
     function animate() {
         world.step(dt);
@@ -350,8 +354,9 @@
         renderer = new THREE.WebGLRenderer( {alpha:true} );
         renderer.setSize(WC.width*2, WC.height*2);
         if (isRetina()){
-            renderer.setSize((WC.width*2)/window.devicePixelRatio, (WC.height*2)/window.devicePixelRatio);
-            renderer.setViewport( 2,0, WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
+            renderer.setSize(WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
+            renderer.setViewport(0,0, WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
+            //console.log(window.devicePixelRatio);
         }
         renderer.setClearColor( 0x000000, 0 ); // the default
         wc_cont.appendChild( renderer.domElement );
@@ -359,11 +364,10 @@
         renderer.gammaOutput = true;
         renderer.physicallyBasedShading = true;
         renderer.shadowMapEnabled = true;
-        window.addEventListener( 'resize', onWindowResize, false );
+        //window.addEventListener( 'resize', onWindowResize, false );
     }
 
     function render() {
-
         //for particles going down
         for (var i = 0, il = Nx + 1; i !== il; i++) {
             for (var j = 0, jl = Ny + 1; j !== jl; j++) {
@@ -429,7 +433,6 @@
      */
 
     function addTilt(){
-        var TILTX = 0;
         if (window.DeviceOrientationEvent) {
             window.addEventListener("deviceorientation", function () {
                 tilt([event.alpha, event.beta, event.gamma]);
@@ -444,12 +447,13 @@
             }, true);
         }
 
-        function tilt(x, y, z){
-            TILTX = x;
-            console.log("GRAVITY: " + world.gravity.toString());
-            animate();
+        function tilt(value){
+            TILTX = value[2];
+            //TILTX = (-1/Math.sin(x[0]))*GRAVITY;
+            console.log("GRAVITY: " + TILTX);
+            world.gravity.set(TILTX/15,GRAVITY,0);
+            //renderer.render(scene, camera);
         }
-
     }
 
 </script>
