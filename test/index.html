@@ -36,7 +36,7 @@
     var mass = clothMass / Nx*Ny;
     var restDistance = clothSize/Nx;
     var renderer;
-    var wc_cont, stats, bgImg;
+    var wc_cont, stats;
     var camera, scene;
     var clothGeometry;
     var object;
@@ -46,15 +46,35 @@
 
 
     //lcool defined
-    var WEBCAP_URL = 'WC_3.png';
+    var WEBCAP_URL = 'WC_' + iScreen() + '.png';
+
+    function iScreen() {
+        var sW = window.screen.availWidth;
+        if (sW <= 320){
+            return 'i4';
+        }
+        else if ((sW >= 375) && (sW < 414)) {
+            return 'i6';
+        }
+        else if ((sW >= 414) && (sW < 768)) {
+            return 'i6P';
+        }
+        else if ((sW >= 768) && (sW < 1000)) {
+            return 'iPad';
+        }
+        else {
+            return '9';
+        }
+
+    }
     var AD_IMG_URL = "adImage.jpg";
-    
+
     var VELOCITY = 0.3; // y-axis force being pushed on the curtain
     var GRAVITY = -7.82; // gravity set in the y axis
     var DURATION = 2.2; // curtain opening in seconds
     var DELAY = 1.5; // time before curtains open upon loading
     var OPEN_PAD = 0.02; //how much padding beside each ad
-    
+
     var animFrame;
     var ready = false;
 
@@ -82,7 +102,7 @@
         $("#bg_img, #ad_img").load(function() {
             //console.log("2");
             if (ready){
-               // console.log("3");
+                // console.log("3");
                 initCannon();
 
                 init(WC, AU, AD_IMG);
@@ -96,8 +116,8 @@
     });
 
     /*
-    * Initializes the particles for the webGL render
-    * */
+     * Initializes the particles for the webGL render
+     * */
     function initCannon(){
 
         world = new CANNON.World();
@@ -120,7 +140,7 @@
                 });
                 particle.addShape(new CANNON.Particle());
                 //particle.linearDamping = 0.2;
-                particle.linearDamping = 0.919;
+                particle.linearDamping = 0.90;
                 particle.position.set(
                         p.x,
                         p.y-Ny * 0.92 * restDistance, //this is what makes it go down
@@ -171,7 +191,16 @@
         AD_IMG.style.display = "block";
 
         wc_cont = document.getElementById("wc_cont");
-        bgImg = document.getElementById("bg_img");
+        wc_cont.style.overflow = 'hidden';
+
+        wc_cont.style.width = WC.width + 'px';
+        wc_cont.style.height = WC.height + 'px';
+
+        //if the ad is too big. reduce it by 50 percent
+        while(AD_IMG.width/WC.width > 0.9){
+            AD_IMG.width = AD_IMG.width/1.5;
+            //console.log("adimg adjusted: " + AD_IMG.width);
+        }
 
         document.body.appendChild( wc_cont );
         document.body.appendChild( AU);
@@ -184,13 +213,9 @@
 
         if (isRetina()){
             camera.position.set(0.5,0.5,0);
-            if (WC.width > window.screen.availWidth){
-                WC.width = window.screen.availWidth;
-                wc_cont.style.width = WC.width;
-            }
         }
         else {
-           // console.log("not retina");
+            // console.log("not retina");
             camera.position.set(0.5,-0.5,0);
         }
 
@@ -253,14 +278,6 @@
         scene.add(leftCurtain);
         scene.add(rightCurtain);
 
-        //match up the WC container width
-        wc_cont.style.width = WC.width;
-
-        //if the ad is too big. reduce it by 50 percent
-        while(AD_IMG.width/WC.width > 0.9){
-            AD_IMG.width = AD_IMG.width/1.5;
-            //console.log("adimg adjusted: " + AD_IMG.width);
-        }
 
         function addCloseBtn(){
             var closeBtn = document.getElementById("close_btn");
@@ -332,32 +349,41 @@
             TweenLite.fromTo(curtain.scale, DURATION, {x: from}, {x: to, ease: Sine.easeOut});
         }, DELAY*1000);
     }
-    
+
 
     ////RENDERING
 
     //function onWindowResize() {
-       // if(renderer.domElement.width != window.innerWidth){
-           // camera.aspect = window.innerWidth / renderer.domElement.height;
-            //camera.updateProjectionMatrix();
-          //  renderer.setSize( window.innerWidth, renderer.domElement.height );
-       // }
-   // }
+    // if(renderer.domElement.width != window.innerWidth){
+    // camera.aspect = window.innerWidth / renderer.domElement.height;
+    //camera.updateProjectionMatrix();
+    //  renderer.setSize( window.innerWidth, renderer.domElement.height );
+    // }
+    // }
 
     function animate() {
         world.step(dt);
         animFrame = requestAnimationFrame(animate);
         render();
     }
-
+    function iPhone() {
+        var iOS = !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)
+        return iOS;
+    }
     function setRenderValues(WC){
         renderer = new THREE.WebGLRenderer( {alpha:true} );
         renderer.setSize(WC.width*2, WC.height*2);
+        //renderer.setViewport(0,0, WC.width, WC.height);
         if (isRetina()){
-            renderer.setSize(WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
-            renderer.setViewport(0,0, WC.width*window.devicePixelRatio, WC.height*window.devicePixelRatio);
+            renderer.setSize(WC.width, WC.height);
+            renderer.setViewport(0,0, WC.width*devicePixelRatio, WC.height*devicePixelRatio);
+            if (window.devicePixelRatio > 2){
+                renderer.setSize(WC.width, WC.height);
+                renderer.setViewport(0,0, WC.width*2, WC.height*2);
+            }
             //console.log(window.devicePixelRatio);
         }
+
         renderer.setClearColor( 0x000000, 0 ); // the default
         wc_cont.appendChild( renderer.domElement );
         renderer.gammaInput = true;
@@ -393,34 +419,35 @@
         TweenLite.fromTo(content, DURATION, {opacity:from}, {opacity:to});
     }
 
+    function addFT() {
+        ////////////////////////////
+        //  Flashtalking API
+        var expndedOnce = false;
+        var unexpanded = myFT.$("#unexpanded");
+        var adspace = myFT.$("#adspace");
+        var expanded = myFT.$("#expanded");
+        var close = myFT.$("#close_btn");
+        var expand = function(){
+            unexpanded.css("display", "none");
+            expanded.css("display", "block");
+            if(expndedOnce == false){
+                expndedOnce = true;
+                init();
+            } else {
+                resetAll();
+            }
+            myFT.expand();
+        };
+        var contract = function(e){
+            expanded.css("display", "none");
+            unexpanded.css("display", "block");
+            expanded.css("opacity", 1);
+            myFT.contract();
+        };
 
-    ////////////////////////////
-    //  Flashtalking API
-    var expndedOnce = false;
-    var unexpanded = myFT.$("#unexpanded");
-    var adspace = myFT.$("#adspace");
-    var expanded = myFT.$("#expanded");
-    var close = myFT.$("#close_btn");
-    var expand = function(){
-        unexpanded.css("display", "none");
-        expanded.css("display", "block");
-        if(expndedOnce == false){
-            expndedOnce = true;
-            init();
-        } else {
-            resetAll();
-        }
-        myFT.expand();
-    };
-    var contract = function(e){
-        expanded.css("display", "none");
-        unexpanded.css("display", "block");
-        expanded.css("opacity", 1);
-        myFT.contract();
-    };
-
-    myFT.applyButton(unexpanded, expand);
-    myFT.applyClickTag(adspace);
+        myFT.applyButton(unexpanded, expand);
+        myFT.applyClickTag(adspace);
+    }
 
     //debugging
     if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -448,11 +475,13 @@
         }
 
         function tilt(value){
-            TILTX = value[2];
-            //TILTX = (-1/Math.sin(x[0]))*GRAVITY;
-            console.log("GRAVITY: " + TILTX);
-            world.gravity.set(TILTX/15,GRAVITY,0);
-            //renderer.render(scene, camera);
+
+            if (value[2] != null) {
+                var TILTX = value[2];
+                console.log(TILTX);
+                world.gravity.set(TILTX/15,GRAVITY,0);
+                console.log("GRAVITY: " + TILTX);
+            }
         }
     }
 
